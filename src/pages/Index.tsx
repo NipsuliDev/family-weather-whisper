@@ -14,7 +14,7 @@ function getWeatherMock() {
     {
       label: parts.current,
       temp: 17,
-      icon: "cloud-sun",
+      icon: ["cloud-sun", "wind"], // 👈 demo: two icons
       warning: undefined,
     },
     {
@@ -27,7 +27,7 @@ function getWeatherMock() {
     {
       label: parts.next[1],
       temp: 17,
-      icon: "rain",
+      icon: ["rain", "wind"], // 👈 demo: rain and wind
       warning: undefined,
       highlight: true,
     },
