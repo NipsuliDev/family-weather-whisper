@@ -1,5 +1,5 @@
-
 import React from "react";
+import { LogoutButton } from "@/components/LogoutButton";
 
 const FAMILY_KEY = "family_info";
 
@@ -13,7 +13,10 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col items-center w-full pt-10 pb-24 animate-fade-in">
-      <h2 className="text-2xl font-bold mb-4 text-pink-700">Family Settings</h2>
+      <div className="flex w-full items-center justify-between md:w-96 mb-4">
+        <h2 className="text-2xl font-bold text-pink-700">Family Settings</h2>
+        <LogoutButton />
+      </div>
       <label htmlFor="family" className="block text-sm text-pink-700 mb-2">
         Briefly describe your family and clothing preferences. This helps personalize the recommendations!
       </label>

@@ -1,9 +1,9 @@
-
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
@@ -12,6 +12,7 @@ export default function AuthPage() {
   const [otp, setOtp] = useState("");
   const { toast } = useToast();
   const [verifyLoading, setVerifyLoading] = useState(false);
+  const navigate = useNavigate();
 
   // Handle Step 1: Send OTP to user's email
   const sendOtp = async (e: React.FormEvent) => {
@@ -64,7 +65,7 @@ export default function AuthPage() {
         title: "Success!",
         description: "You're now signed in.",
       });
-      // The root ProtectedRoutes will handle redirect after state update
+      navigate("/");
     }
   };
 
