@@ -40,9 +40,9 @@ export default function WeatherPage() {
   const suggestion = `Today starts off cloudy and cool. By afternoon, it will be sunny and quite warm, so dress the kids in layers and pack sunscreen. Expect rain by evening—bring a light raincoat and umbrella for pickup!`;
 
   return (
-    <div className="w-full flex flex-col items-center pt-8 pb-24 animate-fade-in">
+    <div className="w-full flex flex-col items-center pt-8 pb-24 animate-fade-in bg-pink-50 min-h-screen">
       <h1 className="text-3xl font-bold mb-6 text-pink-700">Family Weather</h1>
-      <div className="w-full flex flex-col md:flex-row gap-5 mb-7 items-start justify-center max-w-3xl px-5">
+      <div className="w-full flex flex-col gap-6 mb-7 items-center justify-center max-w-3xl px-4">
         {data.map((w) => (
           <WeatherCard key={w.label} {...w} />
         ))}
@@ -51,4 +51,3 @@ export default function WeatherPage() {
     </div>
   );
 }
-
