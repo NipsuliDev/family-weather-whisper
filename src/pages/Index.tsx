@@ -42,7 +42,7 @@ export default function WeatherPage() {
   return (
     <div className="w-full flex flex-col items-center pt-8 pb-24 animate-fade-in">
       <h1 className="text-3xl font-bold mb-6 text-pink-700">Family Weather</h1>
-      <div className="w-full flex flex-col md:flex-row gap-5 mb-7 items-start justify-center max-w-3xl">
+      <div className="w-full flex overflow-x-auto gap-4 mb-7 px-2 max-w-3xl scrollbar-hide">
         {data.map((w) => (
           <WeatherCard key={w.label} {...w} />
         ))}
@@ -51,3 +51,4 @@ export default function WeatherPage() {
     </div>
   );
 }
+

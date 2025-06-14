@@ -29,12 +29,15 @@ export const WeatherCard: React.FC<WeatherInfo> = ({
 }) => {
   const IconComp = iconMap[icon];
   return (
-    <div className={`card flex flex-col items-center gap-2 w-full md:w-52 ${highlight ? "card-highlight" : ""}`}>
-      <div className="text-xs font-semibold uppercase mb-2">{label}</div>
-      <IconComp size={44} color="#d84875" className="mb-1" aria-label={icon} />
-      <div className="text-3xl font-bold mb-1">{Math.round(temp)}°</div>
+    <div
+      className={`card flex flex-col items-center gap-1 w-32 md:w-40 min-w-[8rem] max-w-[9rem] ${highlight ? "card-highlight" : ""}`}
+      style={{ flexShrink: 0 }}
+    >
+      <div className="text-[10px] font-semibold uppercase mb-1 text-center">{label}</div>
+      <IconComp size={32} color="#d84875" className="mb-0.5" aria-label={icon} />
+      <div className="text-2xl font-bold mb-0.5">{Math.round(temp)}°</div>
       {warning && (
-        <div className="text-xs bg-accent-warn text-pink-700 px-2 py-0.5 rounded font-medium">{warning}</div>
+        <div className="text-[10px] bg-accent-warn text-pink-700 px-1.5 py-0.5 rounded font-medium mt-0.5 text-center">{warning}</div>
       )}
     </div>
   );
