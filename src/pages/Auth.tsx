@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
@@ -13,6 +15,15 @@ export default function AuthPage() {
   const { toast } = useToast();
   const [verifyLoading, setVerifyLoading] = useState(false);
   const navigate = useNavigate();
+
+  // New: check if user is already authenticated
+  const { user, loading: authLoading } = useSupabaseAuth();
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, authLoading, navigate]);
 
   // Handle Step 1: Send OTP to user's email
   const sendOtp = async (e: React.FormEvent) => {
@@ -68,6 +79,15 @@ export default function AuthPage() {
       navigate("/");
     }
   };
+
+  // Optionally display loading spinner if auth state is being checked
+  if (authLoading) {
+    return (
+      <div className="w-full min-h-screen flex items-center justify-center">
+        <div className="text-pink-700 font-bold text-lg animate-pulse">Checking session…</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4 bg-pink-50">
