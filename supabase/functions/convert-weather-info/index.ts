@@ -2,18 +2,19 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
+import { GoogleGenAI, Type } from "npm:@google/genai";
+
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Must match frontend types!
 const DAYPARTS = ["morning", "afternoon", "evening"] as const;
 type DayPart = typeof DAYPARTS[number];
 type IconType = "sun" | "cloud" | "cloud-sun" | "rain" | "drizzle" | "wind";
+
 interface WeatherInfo {
   label: string;
   temp: number;
@@ -21,6 +22,26 @@ interface WeatherInfo {
   warning: string[];
   highlight?: boolean;
 }
+
+// Gemini structured output schema
+const WeatherInfoSchema = Type.array(
+  Type.object({
+    label: Type.string(),
+    temp: Type.number(),
+    icon: Type.array(
+      Type.union([
+        Type.literal("sun"),
+        Type.literal("cloud"),
+        Type.literal("cloud-sun"),
+        Type.literal("rain"),
+        Type.literal("drizzle"),
+        Type.literal("wind"),
+      ])
+    ),
+    warning: Type.array(Type.string()),
+    highlight: Type.optional(Type.boolean())
+  })
+);
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -33,82 +54,79 @@ serve(async (req: Request) => {
     if (!forecast || !dayPart || !DAYPARTS.includes(dayPart)) {
       return new Response(
         JSON.stringify({
-          error: "Missing or invalid 'forecast' or 'dayPart' (must be one of: morning, afternoon, evening)",
+          error:
+            "Missing or invalid 'forecast' or 'dayPart' (must be one of: morning, afternoon, evening)",
         }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
-    // Prompt for Gemini
-    const prompt = `You are given a Google Weather hourly forecast: ${JSON.stringify(forecast)}.
-It's currently the "${dayPart}" time window.
-Summarize the forecast for a family weather app. 
-For each relevant period, return a JSON object with: label (string), temp (Celsius, number), icon (array, 1-2, only "sun", "cloud", "cloud-sun", "rain", "drizzle", or "wind"), warnings (array of strings), and highlight (boolean, optional). Output a pure JSON array ONLY. Do not include markdown or any explanation. Example: [{"label":"This morning","temp":23,"icon":["sun"],"warning":[]}]`;
+    if (!GEMINI_API_KEY) {
+      return new Response(
+        JSON.stringify({ error: "GEMINI_API_KEY not set in Supabase secrets." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    // Prepare Gemini API payload
-    const geminiReqBody = {
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              text: prompt
-            }
-          ]
-        }
-      ],
+    // Build prompt for the LLM
+    const prompt = `You are given a Google Weather hourly forecast: ${JSON.stringify(
+      forecast
+    )}.
+It's currently the "${dayPart}" time window.
+Summarize the forecast for a family weather app.
+For each relevant period, return: label (string), temp (Celsius, number), icon (array of 1-2 from "sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"), warning (array of strings), highlight (optional boolean). 
+No markdown, no explanation. Return only the JSON array.`;
+
+    // Gemini API with Structured Output
+    const genAI = new GoogleGenAI(GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash-latest",
       generationConfig: {
         temperature: 0.4,
         maxOutputTokens: 600,
-        responseMimeType: "application/json"
-      }
-    };
-
-    const geminiResp = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
       },
-      body: JSON.stringify(geminiReqBody)
     });
 
-    if (!geminiResp.ok) {
-      const errorText = await geminiResp.text();
-      return new Response(
-        JSON.stringify({ error: "Gemini API error", detail: errorText }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const geminiData = await geminiResp.json();
-    // Gemini API returns candidates[].content.parts[].text
-    // We'll find the first candidate with a .content.parts[0].text
-    let rawJson = null;
+    // Ask Google Gemini for structured weather info
+    let geminiResult;
     try {
-      rawJson =
-        geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ||
-        geminiData?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    } catch (_e) {}
-    if (!rawJson) {
+      geminiResult = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        tools: [{ functionDeclarations: [WeatherInfoSchema] }],
+        toolConfig: { functionCallingConfig: { mode: "ANY" } }
+      });
+    } catch (err) {
       return new Response(
-        JSON.stringify({ error: "Gemini did not return usable output", raw: geminiData }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Gemini SDK error", detail: String(err) }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Remove potential markdown code block, trim, parse
-    let content = String(rawJson).trim();
-    // Remove leading "```json" or "```"
-    if (content.startsWith("```json")) content = content.slice(7);
-    else if (content.startsWith("```")) content = content.slice(3);
-    content = content.trim();
-    if (content.endsWith("```")) content = content.slice(0, -3).trim();
-
+    // Parse and validate the structured output (see docs for Gemini structured tools)
     let parsed: WeatherInfo[] | null = null;
     try {
-      parsed = JSON.parse(content);
-      // Validate: must be an array of objects with required props
+      // Extract function call output
+      const candidate = geminiResult.response.candidates?.[0];
+      const fnArguments = candidate?.content?.parts?.find((p: any) => 
+        p.functionCall && p.functionCall.args
+      )?.functionCall?.args;
+
+      if (!fnArguments) {
+        throw new Error("Gemini did not return any structured output.");
+      }
+      // Output is already type-checked, but we'll still validate structure
+      // (If Gemini returns a stringified JSON, parse if needed)
+      if (typeof fnArguments === "string") {
+        parsed = JSON.parse(fnArguments);
+      } else {
+        parsed = fnArguments as WeatherInfo[];
+      }
+
       if (!Array.isArray(parsed)) throw new Error("Not an array");
+      // Validate: must all conform to WeatherInfo
       for (const w of parsed) {
         if (
           typeof w.label !== "string" ||
@@ -121,13 +139,20 @@ For each relevant period, return a JSON object with: label (string), temp (Celsi
           !Array.isArray(w.warning) ||
           (typeof w.highlight !== "undefined" && typeof w.highlight !== "boolean")
         ) {
-          throw new Error("Validation failed on WeatherInfo object(s)");
+          throw new Error("Validation failed on WeatherInfo objects");
         }
       }
     } catch (err) {
       return new Response(
-        JSON.stringify({ error: "AI output parse/validation error", detail: String(err), ai_output: content }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: "AI output parse/validation error",
+          detail: String(err),
+          ai_output: geminiResult?.response,
+        }),
+        {
+          status: 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
