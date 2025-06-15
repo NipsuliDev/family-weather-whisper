@@ -1,4 +1,3 @@
-
 import { useHourlyWeather } from "./useHourlyWeather";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -38,7 +37,7 @@ export function useWeatherData(opts?: Options) {
   // 2. Compute current day part for family summaries (can override)
   const currentDayPart = opts?.dayPart || getDayPart();
 
-  // Gather timezone and current time info for the backend LLM
+  // Timezone helpers
   let timezone = "UTC";
   let localTime = new Date().toISOString();
   if (typeof window !== "undefined" && typeof Intl !== "undefined" && Intl.DateTimeFormat) {
@@ -50,23 +49,23 @@ export function useWeatherData(opts?: Options) {
     }
   }
 
-  // 3. Query for the summarized WeatherInfo[] only after hourly data is loaded
+  // Detect when hourlyData is ready
+  const hasHourlyData = !!hourly.data && !hourly.isLoading && !hourly.error;
+
+  // DO NOT include the actual data in the key!
+  // If hourly.data is a plain object, it can cause loop
   const queryKey = [
     "weatherData",
     { dayPart: currentDayPart },
-    { hourly: hourly.data },
+    { hasHourlyData },
     { timezone, localTime },
   ];
 
-  const enabled = !!hourly.data && !hourly.isLoading && !hourly.error;
-
   const query = useQuery<WeatherInfo[], Error>({
     queryKey,
-    enabled,
+    enabled: hasHourlyData,
     queryFn: async () => {
       if (!hourly.data) throw new Error("Hourly weather missing");
-
-      // Compose function input (schema must match server)
       const { data, error } = await supabase.functions.invoke<WeatherInfo[]>("convert-weather-info", {
         body: {
           forecast: hourly.data,
