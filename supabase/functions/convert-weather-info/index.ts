@@ -1,23 +1,28 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+// Import the ai-sdk and the Google provider for Gemini
+import { GoogleGenerativeAIProvider } from "npm:ai-sdk-providers/google-generative-ai@0.2.5";
+import { generateStructuredOutput } from "npm:ai-sdk@1.2.6";
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Must match frontend types!
+const DAYPARTS = ["morning", "afternoon", "evening"] as const;
+type DayPart = typeof DAYPARTS[number];
+type IconType = "sun" | "cloud" | "cloud-sun" | "rain" | "drizzle" | "wind";
 interface WeatherInfo {
   label: string;
   temp: number;
-  icon: string[];
+  icon: IconType[];
   warning: string[];
   highlight?: boolean;
 }
-
-const DAYPARTS = ["morning", "afternoon", "evening"] as const;
-type DayPart = typeof DAYPARTS[number];
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -36,63 +41,62 @@ serve(async (req: Request) => {
       );
     }
 
-    // Prompt for Gemini: expects WeatherInfo[] JSON output, day part provided, explain or mark warning/highlight
-    const prompt = [
-      {
-        role: "user",
-        parts: [
-          { text:
-`Given this JSON weather forecast (in Google Weather API hourly format) and the current time period "${dayPart}", generate an array of summary objects suitable for a family weather app. 
-Each object (WeatherInfo) should summarize main period labels (e.g. 'This morning', 'This afternoon', 'This evening'), pick main temp for the period, assign 1-2 icons from: ["sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"], list any weather warnings, and mark highlight if there's a safety or drastic change (high UV, flood risk, etc). Prefer concise, actionable summaries. Output full WeatherInfo[] as valid JSON (no markdown, just plain JSON).
-
-Here is the forecast JSON:
-${JSON.stringify(forecast)}
-`}
-        ]
-      }
-    ];
-
-    const geminiRes = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + GEMINI_API_KEY, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: prompt,
-        generationConfig: {
-          response_mime_type: "application/json",
-        },
-        tools: [],
-        safetySettings: [{ category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }]
-      }),
+    const google = new GoogleGenerativeAIProvider({
+      apiKey: GEMINI_API_KEY,
+      model: "gemini-2.0-flash",
     });
 
-    if (!geminiRes.ok) {
-      const errorDetail = await geminiRes.text();
-      console.error("Gemini API error:", errorDetail);
+    // WeatherInfo schema for structured output
+    const weatherInfoSchema = {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          label: { type: "string", description: "A human-readable time period label, e.g., 'This morning'" },
+          temp: { type: "number", description: "Representative temperature for the period (Celsius)" },
+          icon: {
+            type: "array",
+            items: { type: "string", enum: ["sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"] },
+            description: "1-2 icon codes for summary",
+            minItems: 1,
+            maxItems: 2,
+          },
+          warning: {
+            type: "array",
+            items: { type: "string" },
+            description: "Weather warnings or risk messages",
+          },
+          highlight: {
+            type: "boolean",
+            description: "Highlight if there is a drastic or safety-relevant situation",
+            nullable: true
+          },
+        },
+        required: ["label", "temp", "icon", "warning"],
+        additionalProperties: false,
+      },
+      description: "Array of summarized weather info objects for UI display."
+    };
+
+    const prompt = `You are given a Google Weather hourly forecast: ${JSON.stringify(forecast)}.
+It's currently the "${dayPart}" time window.
+Summarize the forecast for a family weather app. For each relevant period, return an object with: label, temp (Celsius), 1-2 suitable weather icons (only "sun", "cloud", "cloud-sun", "rain", "drizzle", or "wind"), warnings as array, and highlight as boolean if there's notable safety/drastic change. Favor concise, actionable summaries. Output a pure JSON array, matching this schema, no markdown or explanation.`;
+
+    const result = await generateStructuredOutput({
+      model: google,
+      maxRetries: 2,
+      schema: weatherInfoSchema,
+      prompt,
+    });
+
+    if (!result?.output || !Array.isArray(result.output)) {
       return new Response(
-        JSON.stringify({ error: "Failed to call Gemini", detail: errorDetail }),
+        JSON.stringify({ error: "Gemini did not return a valid WeatherInfo[] array", raw: result }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const geminiData = await geminiRes.json();
-    
-    // Gemini's structured response format: data.candidates[0].content.parts[0].text (as JSON string of WeatherInfo[])
-    const text = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
-    let parsed: WeatherInfo[] | null = null;
-    try {
-      parsed = text ? JSON.parse(text) : null;
-    } catch (err) {
-      console.error("Failed to parse Gemini output as JSON", err, text);
-    }
-
-    if (!Array.isArray(parsed)) {
-      return new Response(
-        JSON.stringify({ error: "Gemini output was not a WeatherInfo[] JSON array", raw: text }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    return new Response(JSON.stringify(parsed), {
+    return new Response(JSON.stringify(result.output), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

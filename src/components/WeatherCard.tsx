@@ -2,7 +2,7 @@
 import { Sun, Cloud, CloudRain, Wind, CloudDrizzle, CloudSun } from "lucide-react";
 import React from "react";
 
-type IconType = "sun" | "cloud" | "cloud-sun" | "rain" | "drizzle" | "wind";
+export type IconType = "sun" | "cloud" | "cloud-sun" | "rain" | "drizzle" | "wind";
 const iconMap: Record<IconType, React.ElementType> = {
   sun: Sun,
   cloud: Cloud,
