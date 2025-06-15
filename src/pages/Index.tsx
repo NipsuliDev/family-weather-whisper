@@ -1,4 +1,3 @@
-
 import React from "react";
 import { WeatherCard, WeatherInfo } from "../components/WeatherCard";
 import { WeatherSummaryText } from "../components/WeatherSummaryText";
@@ -14,24 +13,24 @@ function getWeatherMock() {
     {
       label: parts.current,
       temp: 17,
-      icon: ["cloud-sun", "wind"], // 👈 demo: two icons
-      warning: undefined,
+      icon: ["cloud-sun", "wind"],
+      warning: [],
     },
     {
       label: parts.next[0],
       temp: 23,
-      icon: "sun",
-      warning: "High UV",
+      icon: ["sun"],
+      warning: ["High UV"],
       highlight: true,
     },
     {
       label: parts.next[1],
       temp: 17,
-      icon: ["rain", "wind"], // 👈 demo: rain and wind
-      warning: undefined,
+      icon: ["rain", "wind"],
+      warning: ["Possible flooding", "Strong wind"],
       highlight: true,
     },
-  ] as WeatherInfo[];
+  ];
 }
 
 export default function WeatherPage() {

@@ -15,8 +15,8 @@ const iconMap: Record<IconType, React.ElementType> = {
 export interface WeatherInfo {
   label: string;
   temp: number;
-  icon: IconType | IconType[];
-  warning?: string;
+  icon: IconType[];
+  warning: string[];
   highlight?: boolean;
 }
 
@@ -27,8 +27,8 @@ export const WeatherCard: React.FC<WeatherInfo> = ({
   warning,
   highlight = false,
 }) => {
-  // Normalize icon prop to array for easier rendering
-  const icons = Array.isArray(icon) ? icon : [icon];
+  // icons is always an array now
+  const icons = icon;
 
   return (
     <div
@@ -59,12 +59,18 @@ export const WeatherCard: React.FC<WeatherInfo> = ({
         })}
       </div>
       <div className="text-2xl font-bold mb-1 text-pink-900">{Math.round(temp)}°</div>
-      {warning && (
-        <div className="text-[11px] bg-accent-warn text-pink-700 px-2 py-1 rounded font-medium mt-0.5 text-center">
-          {warning}
+      {warning && warning.length > 0 && (
+        <div className="flex flex-col items-center gap-1 mt-0.5 w-full">
+          {warning.map((w, i) => (
+            <div
+              key={w + i}
+              className="text-[11px] bg-accent-warn text-pink-700 px-2 py-1 rounded font-medium text-center w-full"
+            >
+              {w}
+            </div>
+          ))}
         </div>
       )}
     </div>
   );
 };
-
