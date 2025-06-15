@@ -1,15 +1,13 @@
 
 import React from "react";
 import { LogoutButton } from "@/components/LogoutButton";
-
-const FAMILY_KEY = "family_info";
+import { useFamilySettings } from "@/hooks/useFamilySettings";
 
 export default function SettingsPage() {
-  const [family, setFamily] = React.useState(() => localStorage.getItem(FAMILY_KEY) || "");
+  const { family, setFamily } = useFamilySettings();
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setFamily(e.target.value);
-    localStorage.setItem(FAMILY_KEY, e.target.value);
   };
 
   return (
