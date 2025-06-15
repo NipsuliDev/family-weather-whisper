@@ -7,6 +7,34 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const ICONS = [
+  "cloud",
+  "cloud-drizzle",
+  "cloud-fog",
+  "cloud-hail",
+  "cloud-lightning",
+  "cloud-moon",
+  "cloud-moon-rain",
+  "cloud-rain",
+  "cloud-rain-wind",
+  "cloud-snow",
+  "cloud-sun",
+  "cloud-sun-rain",
+  "cloudy",
+  "moon",
+  "moon-star",
+  "snowflake",
+  "sun",
+  "sun-dim",
+  "sun-medium",
+  "sun-moon",
+  "sun-snow",
+  "thermometer-snowflake",
+  "thermometer-sun",
+  "tornado",
+  "umbrella",
+  "wind"
+];
 const DAYPARTS = ["morning", "afternoon", "evening"] as const;
 
 serve(async (req: Request) => {
@@ -65,18 +93,23 @@ The local timezone for this forecast is "${timezone}" and the current local time
 
 The user interface will display THREE weather summary cards:
 1. The current daypart ("morning", "afternoon", or "evening") based on the given local time.
-2. The next upcoming daypart.
+2. The next upcoming daypart in the order described below.
 3. The following daypart after that (if the day changes, label it as "Tomorrow morning" or "Tomorrow afternoon" as appropriate).
 
-Please return ONLY an array of three JSON objects for these three dayparts, IN ORDER (current, next, and the following).
-- For each object, set the field "label" as EXACTLY one of: "morning", "afternoon", or "evening".
-- The "label" MUST be one of those three (case-insensitive). DO NOT use any other label or additional words.
+For the next two dayparts, follow this rule:
+- If the current daypart is "morning", use "afternoon" and "evening".
+- If the current daypart is "afternoon", use "evening" and "tomorrow morning".
+- If the current daypart is "evening", use "tomorrow morning" and "tomorrow afternoon".
+
+Return ONLY an array of three JSON objects for these three dayparts, IN ORDER (current, next, and the following).
+- For each object, set the field "label" as EXACTLY one of: "morning", "afternoon", or "evening" (case-insensitive). Do NOT add "today", "tonight", etc.
+- The "label" MUST be one of those three. DO NOT use any other label or extra text.
 
 For each object, set these fields:
-- "label" (string): the daypart ("morning", "afternoon", or "evening"), matching as above.
+- "label" (string): the daypart ("morning", "afternoon", or "evening"), matching the above requirements.
 - "range" (object): The low and high temperatures in Celsius for that window, e.g., { "low": 16, "high": 22 }.
-- "icon" (array): 1–2 of ["sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"] representing the most important weather for the window.
-- "warning" (array): Only include safety advisories or tips for extreme, hazardous, or significant weather events (e.g., strong wind, high UV, ice, heavy thunder, hail, extreme heat/cold, severe rain). Do NOT include routine recommendations for light rain or mild conditions. Leave the array empty if there are no such significant warnings.
+- "icon" (array): 1–5 of [${ICONS.map((i) => `"${i}"`).join(", ")}] representing the most important weather for the window. Pick the best-fit comfort & safety-wise (e.g., sun, various clouds, precipitation type, wind, umbrella, thermometer-sun, etc).
+- "warning" (array): Only include safety advisories or tips for extreme, hazardous, or significant weather events (e.g., strong wind, high UV, ice, heavy thunder, hail, extreme heat/cold, severe rain, etc). Do NOT include routine recommendations for light rain, mild conditions, or generic tips. Leave the array empty if there are no significant warnings.
 
 Return ONLY the JSON array of three weather summaries. Do not return markdown or explanations. Output must be valid JSON only.
 `;
@@ -108,10 +141,10 @@ Return ONLY the JSON array of three weather summaries. Do not return markdown or
                   type: Type.ARRAY,
                   items: {
                     type: Type.STRING,
-                    enum: ["sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"],
+                    enum: ICONS,
                   },
                   minItems: 1,
-                  maxItems: 2,
+                  maxItems: 5,
                 },
                 warning: {
                   type: Type.ARRAY,

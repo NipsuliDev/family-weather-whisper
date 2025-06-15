@@ -46,3 +46,11 @@ export interface WeatherInfo {
   icon: string[]; // Array of string, will be validated in frontend
   warning: string[];
 }
+
+// Update IconType to include new icons
+export type IconType =
+  | "cloud" | "cloud-drizzle" | "cloud-fog" | "cloud-hail" | "cloud-lightning"
+  | "cloud-moon" | "cloud-moon-rain" | "cloud-rain" | "cloud-rain-wind" | "cloud-snow"
+  | "cloud-sun" | "cloud-sun-rain" | "cloudy" | "moon" | "moon-star"
+  | "snowflake" | "sun" | "sun-dim" | "sun-medium" | "sun-moon" | "sun-snow"
+  | "thermometer-snowflake" | "thermometer-sun" | "tornado" | "umbrella" | "wind";

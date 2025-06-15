@@ -2,7 +2,11 @@ import React from "react";
 import { WeatherCard, IconType } from "./WeatherCard";
 import { useWeatherData } from "@/hooks/useWeatherData";
 import { Skeleton } from "./ui/skeleton";
-import { Sun, CloudRain, Wind, Cloud, CloudSun } from "lucide-react";
+import {
+  Sun, CloudRain, Wind, Cloud, CloudSun, CloudDrizzle, CloudFog, CloudHail, CloudLightning, CloudMoon,
+  CloudMoonRain, CloudRainWind, CloudSnow, CloudSunRain, Cloudy, Moon, MoonStar, Snowflake,
+  SunDim, SunMedium, SunMoon, SunSnow, ThermometerSnowflake, ThermometerSun, Tornado, Umbrella
+} from "lucide-react";
 
 // Helper: fun animated weather loader
 function WeatherLoadingIndicator() {
@@ -41,8 +45,13 @@ function WeatherErrorIndicator({ error }: { error: Error | null }) {
   );
 }
 
-// Valid IconType values for TS narrowing
-const ALLOWED_ICONS: IconType[] = ["sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"];
+// Expanded valid IconTypes (see WeatherCard and integrations/googleWeather)
+const ALLOWED_ICONS: IconType[] = [
+  "cloud","cloud-drizzle","cloud-fog","cloud-hail","cloud-lightning","cloud-moon","cloud-moon-rain",
+  "cloud-rain","cloud-rain-wind","cloud-snow","cloud-sun","cloud-sun-rain","cloudy","moon","moon-star",
+  "snowflake","sun","sun-dim","sun-medium","sun-moon","sun-snow","thermometer-snowflake",
+  "thermometer-sun","tornado","umbrella","wind"
+];
 
 // Main container
 export const WeatherDataContainer: React.FC = () => {

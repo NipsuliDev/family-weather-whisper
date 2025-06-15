@@ -1,13 +1,44 @@
-import { Sun, Cloud, CloudRain, Wind, CloudDrizzle, CloudSun } from "lucide-react";
+
+import {
+  Sun, Cloud, CloudRain, Wind, CloudDrizzle, CloudSun, CloudFog, CloudHail, CloudLightning, CloudMoon,
+  CloudMoonRain, CloudRainWind, CloudSnow, CloudSunRain, Cloudy, Moon, MoonStar, Snowflake,
+  SunDim, SunMedium, SunMoon, SunSnow, ThermometerSnowflake, ThermometerSun, Tornado, Umbrella
+} from "lucide-react";
 import React from "react";
 
-export type IconType = "sun" | "cloud" | "cloud-sun" | "rain" | "drizzle" | "wind";
+export type IconType =
+  | "cloud" | "cloud-drizzle" | "cloud-fog" | "cloud-hail" | "cloud-lightning"
+  | "cloud-moon" | "cloud-moon-rain" | "cloud-rain" | "cloud-rain-wind" | "cloud-snow"
+  | "cloud-sun" | "cloud-sun-rain" | "cloudy" | "moon" | "moon-star"
+  | "snowflake" | "sun" | "sun-dim" | "sun-medium" | "sun-moon" | "sun-snow"
+  | "thermometer-snowflake" | "thermometer-sun" | "tornado" | "umbrella" | "wind";
+
 const iconMap: Record<IconType, React.ElementType> = {
   sun: Sun,
+  "sun-dim": SunDim,
+  "sun-medium": SunMedium,
+  "sun-moon": SunMoon,
+  "sun-snow": SunSnow,
   cloud: Cloud,
+  "cloud-drizzle": CloudDrizzle,
+  "cloud-fog": CloudFog,
+  "cloud-hail": CloudHail,
+  "cloud-lightning": CloudLightning,
+  "cloud-moon": CloudMoon,
+  "cloud-moon-rain": CloudMoonRain,
+  "cloud-rain": CloudRain,
+  "cloud-rain-wind": CloudRainWind,
+  "cloud-snow": CloudSnow,
   "cloud-sun": CloudSun,
-  rain: CloudRain,
-  drizzle: CloudDrizzle,
+  "cloud-sun-rain": CloudSunRain,
+  cloudy: Cloudy,
+  moon: Moon,
+  "moon-star": MoonStar,
+  snowflake: Snowflake,
+  "thermometer-snowflake": ThermometerSnowflake,
+  "thermometer-sun": ThermometerSun,
+  tornado: Tornado,
+  umbrella: Umbrella,
   wind: Wind,
 };
 
@@ -17,7 +48,7 @@ export interface WeatherInfo {
     low: number;
     high: number;
   };
-  icon: IconType[];
+  icon: IconType[]; // Now supports 1–5
   warning: string[];
 }
 
@@ -27,7 +58,6 @@ export const WeatherCard: React.FC<WeatherInfo> = ({
   icon,
   warning,
 }) => {
-  // icons is always an array now
   const icons = icon;
 
   return (
@@ -40,9 +70,11 @@ export const WeatherCard: React.FC<WeatherInfo> = ({
       }}
     >
       <div className="text-xs font-semibold uppercase mb-0.5 text-center text-pink-900">{label}</div>
-      <div className="flex flex-row items-center gap-1 mb-1">
+      <div className={`flex flex-row items-center gap-1 mb-1 ${icons.length > 2 ? "flex-wrap" : ""}`}>
         {icons.map((ic, idx) => {
           const IconComp = iconMap[ic];
+          // fallback if AI "hallucinates": just skip icon
+          if (!IconComp) return null;
           return (
             <IconComp
               size={32}
