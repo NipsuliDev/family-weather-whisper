@@ -33,14 +33,13 @@ serve(async (req: Request) => {
       );
     }
 
-    // Construct the prompt
+    // Construct the prompt (updated to be only 1 paragraph, clothing tips only)
     let prompt =
-`You will be given weather data and a brief description of the user's family and clothing preferences.
+`Give a single concise paragraph with actionable recommendations about what to wear for the next ~12 hours, strictly based on the provided weather data.
 
-ONLY output specific, actionable recommendations on what to wear and how to prepare for the weather for the next ~12 hours (the current and next two dayparts).
-- Focus on clothing choices: for example, long vs short sleeves, if a jacket is needed, if rubber boots and rain gear are a good idea, or if one should consider avoiding going out entirely.
-- Pay special attention to advice for children and day programs like daycare or school, such as suggesting packing extra clothes for the afternoon if the weather is expected to shift.
-- Highlight important changes between morning, afternoon, and evening.
+Your ONLY focus is on clear, specific clothing advice for the whole family (infants, children, adults). Give recommendations like: short sleeves or long sleeves, whether to add a jacket, if layers are wise, if boots or rain clothes are necessary, if rubber boots are needed, or if the weather calls for staying indoors. Mention when weather changes during the day mean an outfit swap will help, particularly for children headed to daycare or school.
+
+Do NOT explain or recap the general weather, do NOT talk about packing or preparations, ONLY list what to wear or put on, and if it's better to avoid outdoor activities for comfort/safety.
 
 Inputs:
 - forecast: ${JSON.stringify(forecast)}
@@ -58,8 +57,7 @@ Inputs:
     prompt += `
 
 RESPONSE FORMAT:
-- Write 1-2 short paragraphs of actionable advice (no markdown, no JSON, just plain text).
-- Do NOT explain the weather in detail—focus on what to wear or pack and recommended actions.
+- Only a single paragraph, only about clothing choices. No markdown, no lists, no JSON, just plain text.
 `;
 
     // Call Gemini API
