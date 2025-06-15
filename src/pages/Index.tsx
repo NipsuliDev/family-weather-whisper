@@ -1,32 +1,34 @@
+
 import React from "react";
 import { WeatherCard, WeatherInfo } from "../components/WeatherCard";
 import { WeatherSummaryText } from "../components/WeatherSummaryText";
 import { getDayParts } from "../lib/dayParts";
 
-// -- MOCK DATA for now
-function getWeatherMock() {
-  // This would be replaced by actual weather API calls.
+// Import IconType for stricter typing
+import type { IconType } from "@/components/WeatherCard";
+
+function getWeatherMock(): WeatherInfo[] {
   const now = new Date();
   const parts = getDayParts(now);
-  // Simulate possible big weather change for demonstration.
+  // Example usage storing warning as array, icon as IconType[]
   return [
     {
       label: parts.current,
       temp: 17,
-      icon: ["cloud-sun", "wind"],
+      icon: ["cloud-sun", "wind"] as IconType[],
       warning: [],
     },
     {
       label: parts.next[0],
       temp: 23,
-      icon: ["sun"],
+      icon: ["sun"] as IconType[],
       warning: ["High UV"],
       highlight: true,
     },
     {
       label: parts.next[1],
       temp: 17,
-      icon: ["rain", "wind"],
+      icon: ["rain", "wind"] as IconType[],
       warning: ["Possible flooding", "Strong wind"],
       highlight: true,
     },
@@ -35,7 +37,6 @@ function getWeatherMock() {
 
 export default function WeatherPage() {
   const data = React.useMemo(getWeatherMock, []);
-  // This should be replaced by personalized text based on weather and settings.
   const suggestion = `Today starts off cloudy and cool. By afternoon, it will be sunny and quite warm, so dress the kids in layers and pack sunscreen. Expect rain by evening—bring a light raincoat and umbrella for pickup!`;
 
   return (

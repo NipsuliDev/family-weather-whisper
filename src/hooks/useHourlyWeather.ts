@@ -1,8 +1,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
-import { getGoogleWeatherHourly, GoogleHourlyForecastResponse } from "@/integrations/googleWeather";
+import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
+import type { GoogleHourlyForecastResponse, GetGoogleWeatherHourlyParams } from "@/integrations/googleWeather";
 
 interface Options {
   enabled?: boolean;
@@ -46,18 +47,19 @@ export function useHourlyWeather(opts?: Options) {
   return useQuery<GoogleHourlyForecastResponse, Error>({
     queryKey,
     queryFn: async () => {
-      // The supabase anon key can be safely shared (is public)
-      const supabaseKey =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJweWFzdHR2cXpvcm5xcnZrc29nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MjYwMzYsImV4cCI6MjA2NTUwMjAzNn0.FTy_QCH7jESTjp4XSdf3n3z9Y_8-Ptd221GQqFeXz3s";
       if (!location) throw new Error("Location unknown");
-      return getGoogleWeatherHourly(
-        {
-          lat: location.lat,
-          lng: location.lng,
-          hours: opts?.hours ?? 24,
-        },
-        supabaseKey
+      const params: GetGoogleWeatherHourlyParams = {
+        lat: location.lat,
+        lng: location.lng,
+        hours: opts?.hours ?? 24,
+      };
+      const { data, error } = await supabase.functions.invoke<GoogleHourlyForecastResponse>(
+        "get-google-weather",
+        { body: params }
       );
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error("No weather data returned");
+      return data;
     },
     enabled: !authLoading && !!location && (opts?.enabled ?? true),
     staleTime: 1000 * 60 * 10, // 10 mins

@@ -1,8 +1,5 @@
 
-/**
- * Typed helper for calling Google Weather edge function
- * Ref: https://developers.google.com/maps/documentation/weather/reference/rest/v1/forecast.hours/lookup
- */
+import type { IconType } from "@/components/WeatherCard";
 
 // Main response shape per Google Weather API
 export interface GoogleHourlyForecastResponse {
@@ -30,27 +27,9 @@ export interface GoogleHourlyForecastResponse {
   [key: string]: any;
 }
 
-export async function getGoogleWeatherHourly(
-  params: { lat: number; lng: number; hours?: number },
-  accessToken: string // raw supabase key (picked up from client)
-): Promise<GoogleHourlyForecastResponse> {
-  const res = await fetch(
-    "https://bpyasttvqzornqrvksog.functions.supabase.co/get-google-weather",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": accessToken,
-      },
-      body: JSON.stringify({
-        lat: params.lat,
-        lng: params.lng,
-        hours: params.hours ?? 24
-      }),
-    }
-  );
-  if (!res.ok) {
-    throw new Error(`Weather API failed: ${res.statusText}`);
-  }
-  return res.json();
+// Helper - params for invoking the Supabase edge function
+export interface GetGoogleWeatherHourlyParams {
+  lat: number;
+  lng: number;
+  hours?: number;
 }
