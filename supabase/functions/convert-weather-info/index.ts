@@ -21,24 +21,36 @@ interface WeatherInfo {
   highlight?: boolean;
 }
 
-const WeatherInfoSchema = Type.array(
-  Type.object({
-    label: Type.string(),
-    temp: Type.number(),
-    icon: Type.array(
-      Type.union([
-        Type.literal("sun"),
-        Type.literal("cloud"),
-        Type.literal("cloud-sun"),
-        Type.literal("rain"),
-        Type.literal("drizzle"),
-        Type.literal("wind"),
-      ])
-    ),
-    warning: Type.array(Type.string()),
-    highlight: Type.optional(Type.boolean())
-  })
-);
+// Gemini structured function tool definition (per SDK docs)
+const WeatherInfoSchema = {
+  name: "WeatherInfoArray",
+  description: "Summarized family-friendly weather info for UI",
+  parameters: {
+    type: "array",
+    items: {
+      type: "object",
+      properties: {
+        label: { type: "string" },
+        temp: { type: "number" },
+        icon: {
+          type: "array",
+          items: {
+            type: "string",
+            enum: ["sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"]
+          },
+          minItems: 1,
+          maxItems: 2,
+        },
+        warning: {
+          type: "array",
+          items: { type: "string" }
+        },
+        highlight: { type: "boolean" }
+      },
+      required: ["label", "temp", "icon", "warning"]
+    },
+  },
+};
 
 serve(async (req: Request) => {
   // Handle CORS preflight
