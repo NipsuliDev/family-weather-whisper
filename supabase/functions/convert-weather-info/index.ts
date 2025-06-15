@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { GoogleGenAI, Type } from "npm:@google/genai";
@@ -56,10 +55,9 @@ serve(async (req: Request) => {
     )}.
 It's currently the "${dayPart}" time window.
 Summarize the forecast for a family weather app.
-For each relevant period, return: label (string), temp (Celsius, number), icon (array of 1-2 from "sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"), warning (array of strings), highlight (optional boolean). 
+For each relevant period, return: label (string), temp (Celsius, number), icon (array of 1-2 from "sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"), warning (array of strings), highlight (boolean). 
 No markdown, no explanation. Return only the JSON array.`;
 
-    // Use the documented Type helpers inline for the responseSchema
     const genAI = new GoogleGenAI(GEMINI_API_KEY);
     let geminiResult;
     try {
@@ -88,10 +86,10 @@ No markdown, no explanation. Return only the JSON array.`;
                   type: Type.ARRAY,
                   items: { type: Type.STRING },
                 },
-                highlight: { type: Type.BOOLEAN, optional: true },
+                highlight: { type: Type.BOOLEAN }
               },
-              required: ["label", "temp", "icon", "warning"],
-              propertyOrdering: ["label", "temp", "icon", "warning", "highlight"]
+              required: ["label", "temp", "icon", "warning", "highlight"],
+              propertyOrdering: ["label", "temp", "icon", "warning", "highlight"],
             },
           },
           temperature: 0.4,
@@ -159,4 +157,3 @@ No markdown, no explanation. Return only the JSON array.`;
     );
   }
 });
-
