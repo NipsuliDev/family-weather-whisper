@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { GoogleGenAI, Type } from "npm:@google/genai";
@@ -64,19 +63,22 @@ serve(async (req: Request) => {
 
 The local timezone for this forecast is "${timezone}" and the current local time is "${localTime}".
 
-The user has requested a family-friendly weather summary for the current part of the day ("daypart") which is "${dayPart}".
+The user interface will display THREE weather summary cards:
+1. The current daypart ("morning", "afternoon", or "evening") based on the given local time.
+2. The next upcoming daypart.
+3. The following daypart after that (if the day changes, label it as "Tomorrow morning" or "Tomorrow afternoon" as appropriate).
 
-Your output should be an array of JSON objects, where each object summarizes weather for a specific time window during this part of the day.
+Please return ONLY an array of three JSON objects for these three dayparts, IN ORDER (current, next, and the following).
+- For each object, set the field "label" as EXACTLY one of: "morning", "afternoon", or "evening".
+- The "label" MUST be one of those three (case-insensitive). DO NOT use any other label or additional words.
 
-FOR THE "label" FIELD: The value MUST be EXACTLY one of the following (case-insensitive): "morning", "afternoon", "evening" (these are called the DAYPARTS). DO NOT use any other label or add extra wording. Only use one of these three words for the "label".
-
-For each object, set the following fields:
-- "label" (string): (see previous instruction)
-- "range" (object): The low and high temperatures *in Celsius* for this window, e.g., { "low": 16, "high": 22 }.
+For each object, set these fields:
+- "label" (string): the daypart ("morning", "afternoon", or "evening"), matching as above.
+- "range" (object): The low and high temperatures in Celsius for that window, e.g., { "low": 16, "high": 22 }.
 - "icon" (array): 1–2 of ["sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"] representing the most important weather for the window.
-- "warning" (array): Any important safety advisories or short tips in strings (e.g., "Bring an umbrella", "Strong wind").
+- "warning" (array): Any important safety advisories or tips, in strings (e.g., "Bring an umbrella", "Strong wind"), may be empty if not needed.
 
-ONLY return the JSON array of summaries. Do not return any markdown, do not provide explanations. Output must be valid JSON only.
+Return ONLY the JSON array of three weather summaries. Do not return markdown or explanations. Output must be valid JSON only.
 `;
 
     const genAI = new GoogleGenAI(GEMINI_API_KEY);
