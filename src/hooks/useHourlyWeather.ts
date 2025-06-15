@@ -63,7 +63,7 @@ export function useHourlyWeather(opts?: Options) {
     },
     enabled: !authLoading && !!location && (opts?.enabled ?? true),
     staleTime: 1000 * 60 * 10, // 10 mins
-    retry: 1,
+    retry: false,
     meta: {
       onError: (error: Error) => {
         console.error("Weather query failed:", error);

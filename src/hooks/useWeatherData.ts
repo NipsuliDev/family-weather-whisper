@@ -65,7 +65,7 @@ export function useWeatherData(opts?: Options) {
       return data;
     },
     staleTime: 1000 * 60 * 15, // 15 minutes
-    retry: 1,
+    retry: false,
     meta: {
       onError: (error: Error) => {
         console.error("Weather summary fetch failed:", error);
