@@ -1,6 +1,5 @@
-
 import React from "react";
-import { WeatherCard } from "./WeatherCard";
+import { WeatherCard, IconType } from "./WeatherCard";
 import { useWeatherData } from "@/hooks/useWeatherData";
 import { Skeleton } from "./ui/skeleton";
 import { Sun, CloudRain, Wind, Cloud, CloudSun } from "lucide-react";
@@ -42,6 +41,9 @@ function WeatherErrorIndicator({ error }: { error: Error | null }) {
   );
 }
 
+// Valid IconType values for TS narrowing
+const ALLOWED_ICONS: IconType[] = ["sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"];
+
 // Main container
 export const WeatherDataContainer: React.FC = () => {
   const { summary, loading, error } = useWeatherData();
@@ -57,9 +59,23 @@ export const WeatherDataContainer: React.FC = () => {
   if (summary && summary.length > 0) {
     return (
       <div className="w-full flex flex-col gap-6 items-center justify-center max-w-3xl px-4 animate-fade-in">
-        {summary.map((w) => (
-          <WeatherCard key={w.label} {...w} />
-        ))}
+        {summary.map((w) => {
+          // Safely cast icons to IconType[]
+          const safeIcons: IconType[] = Array.isArray(w.icon)
+            ? w.icon.filter((ic: string): ic is IconType => ALLOWED_ICONS.includes(ic as IconType))
+            : [];
+
+          return (
+            <WeatherCard
+              key={w.label}
+              label={w.label}
+              temp={w.temp}
+              icon={safeIcons}
+              warning={w.warning}
+              highlight={w.highlight}
+            />
+          );
+        })}
       </div>
     );
   }
