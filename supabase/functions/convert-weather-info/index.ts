@@ -68,8 +68,10 @@ The user has requested a family-friendly weather summary for the current part of
 
 Your output should be an array of JSON objects, where each object summarizes weather for a specific time window during this part of the day.
 
+FOR THE "label" FIELD: The value MUST be EXACTLY one of the following (case-insensitive): "morning", "afternoon", "evening" (these are called the DAYPARTS). DO NOT use any other label or add extra wording. Only use one of these three words for the "label".
+
 For each object, set the following fields:
-- "label" (string): This should be a clear and succinct human-friendly name for this time window, describing the daypart and the local time range it covers, e.g., "Afternoon (12pm–5pm)", "Evening Pickup (5pm–8pm)", etc. Make sure the label is easily understandable by families with children, and explicitly includes both the daypart and its local time window in the label.
+- "label" (string): (see previous instruction)
 - "range" (object): The low and high temperatures *in Celsius* for this window, e.g., { "low": 16, "high": 22 }.
 - "icon" (array): 1–2 of ["sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"] representing the most important weather for the window.
 - "warning" (array): Any important safety advisories or short tips in strings (e.g., "Bring an umbrella", "Strong wind").
