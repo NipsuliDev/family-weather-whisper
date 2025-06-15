@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { GoogleGenAI, Type } from "npm:@google/genai";
@@ -16,13 +17,32 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { forecast, dayPart } = await req.json();
+    const { forecast, dayPart, timezone, localTime } = await req.json();
 
+    // Validate inputs
     if (!forecast || !dayPart || !DAYPARTS.includes(dayPart)) {
       return new Response(
         JSON.stringify({
           error: "Missing or invalid 'forecast' or 'dayPart' (must be one of: morning, afternoon, evening)",
         }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    if (!timezone || typeof timezone !== "string") {
+      return new Response(
+        JSON.stringify({ error: "Missing or invalid 'timezone' (IANA TZ string)" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    if (!localTime || typeof localTime !== "string") {
+      return new Response(
+        JSON.stringify({ error: "Missing or invalid 'localTime' (ISO 8601 string)" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -39,13 +59,23 @@ serve(async (req: Request) => {
     }
 
     // Build the prompt for the LLM
-    const prompt = `You are given a Google Weather hourly forecast: ${JSON.stringify(
-      forecast
-    )}.
-It's currently the "${dayPart}" time window.
-Summarize the forecast for a family weather app.
-For each relevant period, return: label (string), range (object with keys "low" and "high", both numbers, representing temp range in Celsius), icon (array of 1-2 from "sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"), warning (array of strings).
-No markdown, no explanation. Return only the JSON array.`;
+    const prompt = 
+`You are given a Google Weather hourly forecast: ${JSON.stringify(forecast)}.
+
+The local timezone for this forecast is "${timezone}" and the current local time is "${localTime}".
+
+The user has requested a family-friendly weather summary for the current part of the day ("daypart") which is "${dayPart}".
+
+Your output should be an array of JSON objects, where each object summarizes weather for a specific time window during this part of the day.
+
+For each object, set the following fields:
+- "label" (string): This should be a clear and succinct human-friendly name for this time window, describing the daypart and the local time range it covers, e.g., "Afternoon (12pm–5pm)", "Evening Pickup (5pm–8pm)", etc. Make sure the label is easily understandable by families with children, and explicitly includes both the daypart and its local time window in the label.
+- "range" (object): The low and high temperatures *in Celsius* for this window, e.g., { "low": 16, "high": 22 }.
+- "icon" (array): 1–2 of ["sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"] representing the most important weather for the window.
+- "warning" (array): Any important safety advisories or short tips in strings (e.g., "Bring an umbrella", "Strong wind").
+
+ONLY return the JSON array of summaries. Do not return any markdown, do not provide explanations. Output must be valid JSON only.
+`;
 
     const genAI = new GoogleGenAI(GEMINI_API_KEY);
 
