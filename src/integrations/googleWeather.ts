@@ -1,4 +1,4 @@
-import type { IconType } from "@/components/WeatherCard";
+// Removed incorrect import: import type { IconType } from "@/components/WeatherCard";
 
 // Main response shape per Google Weather API
 export interface GoogleHourlyForecastResponse {
