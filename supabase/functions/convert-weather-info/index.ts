@@ -1,9 +1,9 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-// Import the ai-sdk and the Google provider for Gemini
-import { GoogleGenerativeAIProvider, generateStructuredOutput } from "npm:ai-sdk@1.2.6";
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,62 +39,99 @@ serve(async (req: Request) => {
       );
     }
 
-    const google = new GoogleGenerativeAIProvider({
-      apiKey: GEMINI_API_KEY,
-      model: "gemini-2.0-flash",
-    });
-
-    // WeatherInfo schema for structured output
-    const weatherInfoSchema = {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          label: { type: "string", description: "A human-readable time period label, e.g., 'This morning'" },
-          temp: { type: "number", description: "Representative temperature for the period (Celsius)" },
-          icon: {
-            type: "array",
-            items: { type: "string", enum: ["sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"] },
-            description: "1-2 icon codes for summary",
-            minItems: 1,
-            maxItems: 2,
-          },
-          warning: {
-            type: "array",
-            items: { type: "string" },
-            description: "Weather warnings or risk messages",
-          },
-          highlight: {
-            type: "boolean",
-            description: "Highlight if there is a drastic or safety-relevant situation",
-            nullable: true
-          },
-        },
-        required: ["label", "temp", "icon", "warning"],
-        additionalProperties: false,
-      },
-      description: "Array of summarized weather info objects for UI display."
-    };
-
+    // Prompt for Gemini
     const prompt = `You are given a Google Weather hourly forecast: ${JSON.stringify(forecast)}.
 It's currently the "${dayPart}" time window.
-Summarize the forecast for a family weather app. For each relevant period, return an object with: label, temp (Celsius), 1-2 suitable weather icons (only "sun", "cloud", "cloud-sun", "rain", "drizzle", or "wind"), warnings as array, and highlight as boolean if there's notable safety/drastic change. Favor concise, actionable summaries. Output a pure JSON array, matching this schema, no markdown or explanation.`;
+Summarize the forecast for a family weather app. 
+For each relevant period, return a JSON object with: label (string), temp (Celsius, number), icon (array, 1-2, only "sun", "cloud", "cloud-sun", "rain", "drizzle", or "wind"), warnings (array of strings), and highlight (boolean, optional). Output a pure JSON array ONLY. Do not include markdown or any explanation. Example: [{"label":"This morning","temp":23,"icon":["sun"],"warning":[]}]`;
 
-    const result = await generateStructuredOutput({
-      model: google,
-      maxRetries: 2,
-      schema: weatherInfoSchema,
-      prompt,
+    // Prepare Gemini API payload
+    const geminiReqBody = {
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              text: prompt
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.4,
+        maxOutputTokens: 600,
+        responseMimeType: "application/json"
+      }
+    };
+
+    const geminiResp = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(geminiReqBody)
     });
 
-    if (!result?.output || !Array.isArray(result.output)) {
+    if (!geminiResp.ok) {
+      const errorText = await geminiResp.text();
       return new Response(
-        JSON.stringify({ error: "Gemini did not return a valid WeatherInfo[] array", raw: result }),
+        JSON.stringify({ error: "Gemini API error", detail: errorText }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    return new Response(JSON.stringify(result.output), {
+    const geminiData = await geminiResp.json();
+    // Gemini API returns candidates[].content.parts[].text
+    // We'll find the first candidate with a .content.parts[0].text
+    let rawJson = null;
+    try {
+      rawJson =
+        geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        geminiData?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    } catch (_e) {}
+    if (!rawJson) {
+      return new Response(
+        JSON.stringify({ error: "Gemini did not return usable output", raw: geminiData }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Remove potential markdown code block, trim, parse
+    let content = String(rawJson).trim();
+    // Remove leading "```json" or "```"
+    if (content.startsWith("```json")) content = content.slice(7);
+    else if (content.startsWith("```")) content = content.slice(3);
+    content = content.trim();
+    if (content.endsWith("```")) content = content.slice(0, -3).trim();
+
+    let parsed: WeatherInfo[] | null = null;
+    try {
+      parsed = JSON.parse(content);
+      // Validate: must be an array of objects with required props
+      if (!Array.isArray(parsed)) throw new Error("Not an array");
+      for (const w of parsed) {
+        if (
+          typeof w.label !== "string" ||
+          typeof w.temp !== "number" ||
+          !Array.isArray(w.icon) ||
+          !w.icon.length ||
+          !w.icon.every((ic: string) =>
+            ["sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"].includes(ic)
+          ) ||
+          !Array.isArray(w.warning) ||
+          (typeof w.highlight !== "undefined" && typeof w.highlight !== "boolean")
+        ) {
+          throw new Error("Validation failed on WeatherInfo object(s)");
+        }
+      }
+    } catch (err) {
+      return new Response(
+        JSON.stringify({ error: "AI output parse/validation error", detail: String(err), ai_output: content }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    return new Response(JSON.stringify(parsed), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
