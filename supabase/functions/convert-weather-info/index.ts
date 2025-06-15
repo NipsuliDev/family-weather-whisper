@@ -1,8 +1,7 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { GoogleGenAI, Type } from "npm:@google/genai";
-
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,34 +19,6 @@ interface WeatherInfo {
   warning: string[];
   highlight?: boolean;
 }
-
-// --- Structured output response schema with Type values, as per Gemini docs ---
-const WeatherInfoSchema = {
-  type: "array",
-  items: {
-    type: "object",
-    properties: {
-      label: { type: "string" },
-      temp: { type: "number" },
-      icon: {
-        type: "array",
-        items: {
-          type: "string",
-          enum: ["sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"]
-        },
-        minItems: 1,
-        maxItems: 2,
-      },
-      warning: {
-        type: "array",
-        items: { type: "string" }
-      },
-      highlight: { type: "boolean" }
-    },
-    required: ["label", "temp", "icon", "warning"],
-    propertyOrdering: ["label", "temp", "icon", "warning", "highlight"]
-  },
-};
 
 serve(async (req: Request) => {
   // Handle CORS preflight
@@ -88,7 +59,7 @@ Summarize the forecast for a family weather app.
 For each relevant period, return: label (string), temp (Celsius, number), icon (array of 1-2 from "sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"), warning (array of strings), highlight (optional boolean). 
 No markdown, no explanation. Return only the JSON array.`;
 
-    // Now use the documented responseMimeType and responseSchema (not tools)
+    // Use the documented Type helpers inline for the responseSchema
     const genAI = new GoogleGenAI(GEMINI_API_KEY);
     let geminiResult;
     try {
@@ -97,7 +68,32 @@ No markdown, no explanation. Return only the JSON array.`;
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         config: {
           responseMimeType: "application/json",
-          responseSchema: WeatherInfoSchema,
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                label: { type: Type.STRING },
+                temp: { type: Type.NUMBER },
+                icon: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.STRING,
+                    enum: ["sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"],
+                  },
+                  minItems: 1,
+                  maxItems: 2,
+                },
+                warning: {
+                  type: Type.ARRAY,
+                  items: { type: Type.STRING },
+                },
+                highlight: { type: Type.BOOLEAN, optional: true },
+              },
+              required: ["label", "temp", "icon", "warning"],
+              propertyOrdering: ["label", "temp", "icon", "warning", "highlight"]
+            },
+          },
           temperature: 0.4,
           maxOutputTokens: 600,
         },
@@ -163,3 +159,4 @@ No markdown, no explanation. Return only the JSON array.`;
     );
   }
 });
+
