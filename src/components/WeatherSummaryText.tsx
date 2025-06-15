@@ -2,12 +2,8 @@
 import React from "react";
 import { useWeatherTips } from "@/hooks/useWeatherTips";
 
-interface Props {
-  familyContext?: string;
-}
-
-export const WeatherSummaryText: React.FC<Props> = ({ familyContext }) => {
-  const { tips, loading, error } = useWeatherTips({ familyContext });
+export const WeatherSummaryText: React.FC = () => {
+  const { tips, loading, error } = useWeatherTips();
 
   if (loading) {
     return (

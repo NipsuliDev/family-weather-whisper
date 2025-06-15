@@ -3,15 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useHourlyWeather } from "./useHourlyWeather";
 import { getDayPart } from "./useWeatherData";
+import { useFamilySettings } from "./useFamilySettings";
 
 /**
  * Custom hook to fetch actionable weather tips for families.
- * @param options Optionally provide family context/preferences for LLM.
+ * Uses family preferences stored in localStorage via useFamilySettings.
  */
-export function useWeatherTips(options?: { familyContext?: string }) {
-  // Use location, hourly weather, etc.
+export function useWeatherTips() {
   const hourly = useHourlyWeather();
-  const familyContext = options?.familyContext ?? "";
+  const { family: familyContext } = useFamilySettings();
 
   const dayPart = getDayPart();
   const lat = hourly.location?.lat;
