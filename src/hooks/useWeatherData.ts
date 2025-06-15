@@ -6,8 +6,7 @@ import React from "react";
 import type { DayPart, WeatherInfo } from "@/integrations/googleWeather";
 
 /**
- * Simple helper that picks an appropriate day part ("morning", "afternoon", "evening")
- * based on current time.
+ * Pick an appropriate day part ("morning", "afternoon", "evening")
  */
 export function getDayPart(now = new Date()): DayPart {
   const hour = now.getHours();
@@ -25,60 +24,50 @@ interface Options {
 
 /**
  * useWeatherData - gets summarized/family friendly weather advisories for UI
- *
- * Step 1. Use the hourlyWeather hook to get fresh weather forecast data.
- * Step 2. Call Supabase Edge Function 'convert-weather-info' with hourly data and dayPart to get WeatherInfo[]
  */
 export function useWeatherData(opts?: Options) {
-  // 1. Get the core Google Weather hourly data first.
+  // 1. Pull base weather
   const hourly = useHourlyWeather({
     enabled: opts?.enabled,
     hours: opts?.hours,
   });
 
-  // 2. Compute current day part for family summaries (can override)
+  // 2. Get day part
   const currentDayPart = opts?.dayPart || getDayPart();
 
-  // Memoize timezone and localTime so they are stable for useQuery queryKey
-  const { timezone, localTime } = React.useMemo(() => {
-    let tz = "UTC";
-    let lt = "";
-    if (typeof window !== "undefined" && typeof Intl !== "undefined" && Intl.DateTimeFormat) {
-      try {
-        tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-        lt = new Date().toISOString();
-      } catch {
-        // fallback to UTC and ISO string
-        tz = "UTC";
-        lt = new Date().toISOString();
-      }
-    } else {
-      tz = "UTC";
-      lt = new Date().toISOString();
-    }
-    return { timezone: tz, localTime: lt };
-    // eslint-disable-next-line
-  }, [currentDayPart]);
+  // 3. Grab lat/lng and hours for key
+  const lat = hourly.location?.lat;
+  const lng = hourly.location?.lng;
+  const hours = opts?.hours ?? 24;
 
-  // Detect when hourlyData is ready
+  // 4. Stable query key ONLY using actual triggers
+  const queryKey = [
+    "weatherData",
+    { dayPart: currentDayPart },
+    { lat, lng },
+    { hours }
+  ];
+
+  // 5. Only run when data ready
   const hasHourlyData = !!hourly.data && !hourly.isLoading && !hourly.error;
 
-  // The queryKey should remain stable while location/daypart/hourly data is stable
-  const queryKey = React.useMemo(
-    () => [
-      "weatherData",
-      { dayPart: currentDayPart },
-      { hasHourlyData }, // Only update when actual data changes
-      { timezone, localTime },
-    ],
-    [currentDayPart, hasHourlyData, timezone, localTime]
-  );
-
+  // 6. Run the real query
   const query = useQuery<WeatherInfo[], Error>({
     queryKey,
     enabled: hasHourlyData,
     queryFn: async () => {
       if (!hourly.data) throw new Error("Hourly weather missing");
+      // Compute localTime/timezone only here (not in key!)
+      let timezone = "UTC";
+      let localTime = new Date().toISOString();
+      if (typeof window !== "undefined" && typeof Intl !== "undefined" && Intl.DateTimeFormat) {
+        try {
+          timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+        } catch {
+          timezone = "UTC";
+        }
+        localTime = new Date().toISOString();
+      }
       const { data, error } = await supabase.functions.invoke<WeatherInfo[]>("convert-weather-info", {
         body: {
           forecast: hourly.data,
@@ -109,4 +98,3 @@ export function useWeatherData(opts?: Options) {
     dayPart: currentDayPart,
   };
 }
-
