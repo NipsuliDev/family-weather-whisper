@@ -1,8 +1,7 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 // Import the ai-sdk and the Google provider for Gemini
-import { GoogleGenerativeAIProvider } from "npm:ai-sdk-providers/google-generative-ai@0.2.5";
+import { GoogleGenerativeAIProvider } from "npm:ai-sdk-providers@0.2.5/google-generative-ai";
 import { generateStructuredOutput } from "npm:ai-sdk@1.2.6";
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
