@@ -76,7 +76,7 @@ For each object, set these fields:
 - "label" (string): the daypart ("morning", "afternoon", or "evening"), matching as above.
 - "range" (object): The low and high temperatures in Celsius for that window, e.g., { "low": 16, "high": 22 }.
 - "icon" (array): 1–2 of ["sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"] representing the most important weather for the window.
-- "warning" (array): Any important safety advisories or tips, in strings (e.g., "Bring an umbrella", "Strong wind"), may be empty if not needed.
+- "warning" (array): Only include safety advisories or tips for extreme, hazardous, or significant weather events (e.g., strong wind, high UV, ice, heavy thunder, hail, extreme heat/cold, severe rain). Do NOT include routine recommendations for light rain or mild conditions. Leave the array empty if there are no such significant warnings.
 
 Return ONLY the JSON array of three weather summaries. Do not return markdown or explanations. Output must be valid JSON only.
 `;
