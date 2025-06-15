@@ -1,7 +1,6 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-
 import { GoogleGenAI, Type } from "npm:@google/genai";
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
@@ -23,7 +22,6 @@ interface WeatherInfo {
   highlight?: boolean;
 }
 
-// Gemini structured output schema
 const WeatherInfoSchema = Type.array(
   Type.object({
     label: Type.string(),
@@ -44,6 +42,7 @@ const WeatherInfoSchema = Type.array(
 );
 
 serve(async (req: Request) => {
+  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -126,7 +125,6 @@ No markdown, no explanation. Return only the JSON array.`;
       }
 
       if (!Array.isArray(parsed)) throw new Error("Not an array");
-      // Validate: must all conform to WeatherInfo
       for (const w of parsed) {
         if (
           typeof w.label !== "string" ||
