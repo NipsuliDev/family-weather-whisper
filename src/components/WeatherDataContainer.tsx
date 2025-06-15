@@ -1,5 +1,7 @@
+
 import React from "react";
-import { WeatherCard, IconType } from "./WeatherCard";
+import { WeatherCard } from "./WeatherCard";
+import type { IconType } from "@/integrations/googleWeather"; // Centralized IconType import
 import { useWeatherData } from "@/hooks/useWeatherData";
 import { Skeleton } from "./ui/skeleton";
 import {

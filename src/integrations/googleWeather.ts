@@ -47,7 +47,7 @@ export interface WeatherInfo {
   warning: string[];
 }
 
-// Update IconType to include new icons
+// Centralized IconType definition, so it can be imported elsewhere.
 export type IconType =
   | "cloud" | "cloud-drizzle" | "cloud-fog" | "cloud-hail" | "cloud-lightning"
   | "cloud-moon" | "cloud-moon-rain" | "cloud-rain" | "cloud-rain-wind" | "cloud-snow"

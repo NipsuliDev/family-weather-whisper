@@ -1,17 +1,10 @@
-
 import {
   Sun, Cloud, CloudRain, Wind, CloudDrizzle, CloudSun, CloudFog, CloudHail, CloudLightning, CloudMoon,
   CloudMoonRain, CloudRainWind, CloudSnow, CloudSunRain, Cloudy, Moon, MoonStar, Snowflake,
   SunDim, SunMedium, SunMoon, SunSnow, ThermometerSnowflake, ThermometerSun, Tornado, Umbrella
 } from "lucide-react";
 import React from "react";
-
-export type IconType =
-  | "cloud" | "cloud-drizzle" | "cloud-fog" | "cloud-hail" | "cloud-lightning"
-  | "cloud-moon" | "cloud-moon-rain" | "cloud-rain" | "cloud-rain-wind" | "cloud-snow"
-  | "cloud-sun" | "cloud-sun-rain" | "cloudy" | "moon" | "moon-star"
-  | "snowflake" | "sun" | "sun-dim" | "sun-medium" | "sun-moon" | "sun-snow"
-  | "thermometer-snowflake" | "thermometer-sun" | "tornado" | "umbrella" | "wind";
+import type { IconType } from "@/integrations/googleWeather"; // Centralized import
 
 const iconMap: Record<IconType, React.ElementType> = {
   sun: Sun,
