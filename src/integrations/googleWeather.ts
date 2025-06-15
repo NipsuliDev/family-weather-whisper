@@ -1,4 +1,3 @@
-
 import type { IconType } from "@/components/WeatherCard";
 
 // Main response shape per Google Weather API
@@ -32,4 +31,16 @@ export interface GetGoogleWeatherHourlyParams {
   lat: number;
   lng: number;
   hours?: number;
+}
+
+/** DayPart for weather summarization (used for LLM conversion etc) */
+export type DayPart = "morning" | "afternoon" | "evening";
+
+// Helper interface for WeatherInfo - match UI
+export interface WeatherInfo {
+  label: string;
+  temp: number;
+  icon: string[]; // Array of string, will be validated in frontend
+  warning: string[];
+  highlight?: boolean;
 }
