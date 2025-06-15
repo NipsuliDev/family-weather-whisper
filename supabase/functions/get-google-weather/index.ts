@@ -17,6 +17,14 @@ serve(async (req: Request) => {
   try {
     const { lat, lng, hours = 24 } = await req.json();
 
+    if (!GOOGLE_WEATHER_API_KEY) {
+      console.error("GOOGLE_WEATHER_API_KEY is not set");
+      return new Response(
+        JSON.stringify({ error: "Google Weather API key is not set." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (
       typeof lat !== "number" ||
       typeof lng !== "number" ||
@@ -31,10 +39,12 @@ serve(async (req: Request) => {
       );
     }
 
-    // https://developers.google.com/maps/documentation/weather/reference/rest/v1/forecast.hours/lookup
-    // Example base: https://weatherapi.googleapis.com/v1/hourly?location.lat=...&location.lng=...&key=...
-
-    const endpoint = `https://weatherapi.googleapis.com/v1/hourly?location.lat=${lat}&location.lng=${lng}&hours=${hours}&key=${GOOGLE_WEATHER_API_KEY}`;
+    // Use the correct API endpoint and parameters per Google documentation
+    const endpoint = `https://weather.googleapis.com/v1/forecast/hours:lookup` +
+      `?key=${encodeURIComponent(GOOGLE_WEATHER_API_KEY)}` +
+      `&location.latitude=${encodeURIComponent(lat)}` +
+      `&location.longitude=${encodeURIComponent(lng)}` +
+      (hours ? `&hours=${encodeURIComponent(hours)}` : "");
 
     const apiRes = await fetch(endpoint, {
       method: "GET",
@@ -54,7 +64,6 @@ serve(async (req: Request) => {
 
     const weather = await apiRes.json();
 
-    // Only return the relevant next N (24) hours per API reference
     return new Response(JSON.stringify(weather), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
