@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { GoogleGenAI, Type } from "npm:@google/genai";
@@ -44,7 +43,8 @@ const WeatherInfoSchema = Type.array(
 serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    // Some browsers require status 200 for CORS preflight
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   try {
