@@ -119,7 +119,7 @@ Return ONLY the JSON array of three weather summaries. Do not return markdown or
     let geminiResult;
     try {
       geminiResult = await genAI.models.generateContent({
-        model: "gemini-1.5-flash-latest",
+        model: "gemini-2.0-flash",
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         config: {
           responseMimeType: "application/json",
