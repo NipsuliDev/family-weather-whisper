@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { GoogleGenAI, Type } from "npm:@google/genai";
@@ -95,12 +94,9 @@ No markdown, no explanation. Return only the JSON array.`;
     }
 
     try {
-      const outputText = geminiResult.response?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!outputText) throw new Error("No JSON output from Gemini");
-
-      // The Google docs example puts JSON directly into text, so just parse and return.
-      const parsed = JSON.parse(outputText);
-
+      if (!geminiResult.text) throw new Error("No JSON output in geminiResult.text");
+      // Directly parse the output using geminiResult.text
+      const parsed = JSON.parse(geminiResult.text);
       return new Response(JSON.stringify(parsed), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
