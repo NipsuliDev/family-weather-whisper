@@ -21,41 +21,37 @@ interface WeatherInfo {
   highlight?: boolean;
 }
 
-// Gemini structured function tool definition (per SDK docs)
+// --- Structured output response schema with Type values, as per Gemini docs ---
 const WeatherInfoSchema = {
-  name: "WeatherInfoArray",
-  description: "Summarized family-friendly weather info for UI",
-  parameters: {
-    type: "array",
-    items: {
-      type: "object",
-      properties: {
-        label: { type: "string" },
-        temp: { type: "number" },
-        icon: {
-          type: "array",
-          items: {
-            type: "string",
-            enum: ["sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"]
-          },
-          minItems: 1,
-          maxItems: 2,
+  type: "array",
+  items: {
+    type: "object",
+    properties: {
+      label: { type: "string" },
+      temp: { type: "number" },
+      icon: {
+        type: "array",
+        items: {
+          type: "string",
+          enum: ["sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"]
         },
-        warning: {
-          type: "array",
-          items: { type: "string" }
-        },
-        highlight: { type: "boolean" }
+        minItems: 1,
+        maxItems: 2,
       },
-      required: ["label", "temp", "icon", "warning"]
+      warning: {
+        type: "array",
+        items: { type: "string" }
+      },
+      highlight: { type: "boolean" }
     },
+    required: ["label", "temp", "icon", "warning"],
+    propertyOrdering: ["label", "temp", "icon", "warning", "highlight"]
   },
 };
 
 serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    // Some browsers require status 200 for CORS preflight
     return new Response(null, { status: 200, headers: corsHeaders });
   }
 
@@ -75,6 +71,7 @@ serve(async (req: Request) => {
       );
     }
 
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) {
       return new Response(
         JSON.stringify({ error: "GEMINI_API_KEY not set in Supabase secrets." }),
@@ -82,7 +79,7 @@ serve(async (req: Request) => {
       );
     }
 
-    // Build prompt for the LLM
+    // Build the prompt for the LLM
     const prompt = `You are given a Google Weather hourly forecast: ${JSON.stringify(
       forecast
     )}.
@@ -91,23 +88,19 @@ Summarize the forecast for a family weather app.
 For each relevant period, return: label (string), temp (Celsius, number), icon (array of 1-2 from "sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"), warning (array of strings), highlight (optional boolean). 
 No markdown, no explanation. Return only the JSON array.`;
 
-    // Gemini API with Structured Output
+    // Now use the documented responseMimeType and responseSchema (not tools)
     const genAI = new GoogleGenAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash-latest",
-      generationConfig: {
-        temperature: 0.4,
-        maxOutputTokens: 600,
-      },
-    });
-
-    // Ask Google Gemini for structured weather info
     let geminiResult;
     try {
-      geminiResult = await model.generateContent({
+      geminiResult = await genAI.models.generateContent({
+        model: "gemini-1.5-flash-latest",
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        tools: [{ functionDeclarations: [WeatherInfoSchema] }],
-        toolConfig: { functionCallingConfig: { mode: "ANY" } }
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: WeatherInfoSchema,
+          temperature: 0.4,
+          maxOutputTokens: 600,
+        },
       });
     } catch (err) {
       return new Response(
@@ -116,25 +109,16 @@ No markdown, no explanation. Return only the JSON array.`;
       );
     }
 
-    // Parse and validate the structured output (see docs for Gemini structured tools)
+    // Response parsed as JSON
     let parsed: WeatherInfo[] | null = null;
     try {
-      // Extract function call output
-      const candidate = geminiResult.response.candidates?.[0];
-      const fnArguments = candidate?.content?.parts?.find((p: any) => 
-        p.functionCall && p.functionCall.args
-      )?.functionCall?.args;
+      let outputRaw = geminiResult.response?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!outputRaw) {
+        outputRaw = geminiResult.response?.candidates?.[0]?.content?.parts?.[0]?.functionCall?.args;
+      }
+      if (!outputRaw) throw new Error("No JSON output from Gemini");
 
-      if (!fnArguments) {
-        throw new Error("Gemini did not return any structured output.");
-      }
-      // Output is already type-checked, but we'll still validate structure
-      // (If Gemini returns a stringified JSON, parse if needed)
-      if (typeof fnArguments === "string") {
-        parsed = JSON.parse(fnArguments);
-      } else {
-        parsed = fnArguments as WeatherInfo[];
-      }
+      parsed = typeof outputRaw === "string" ? JSON.parse(outputRaw) : outputRaw;
 
       if (!Array.isArray(parsed)) throw new Error("Not an array");
       for (const w of parsed) {
