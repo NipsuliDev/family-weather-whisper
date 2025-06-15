@@ -2,9 +2,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
-// Load the Google Weather API Key from project secrets
 const GOOGLE_WEATHER_API_KEY = Deno.env.get("GOOGLE_WEATHER_API_KEY");
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -12,13 +10,12 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { lat, lng } = await req.json();
+    const { lat, lng, hours = 24 } = await req.json();
 
     if (
       typeof lat !== "number" ||
@@ -34,8 +31,10 @@ serve(async (req: Request) => {
       );
     }
 
-    // Build the Google Weather API endpoint
-    const endpoint = `https://weatherapi.googleapis.com/v1/hourly?location.lat=${lat}&location.lng=${lng}&key=${GOOGLE_WEATHER_API_KEY}`;
+    // https://developers.google.com/maps/documentation/weather/reference/rest/v1/forecast.hours/lookup
+    // Example base: https://weatherapi.googleapis.com/v1/hourly?location.lat=...&location.lng=...&key=...
+
+    const endpoint = `https://weatherapi.googleapis.com/v1/hourly?location.lat=${lat}&location.lng=${lng}&hours=${hours}&key=${GOOGLE_WEATHER_API_KEY}`;
 
     const apiRes = await fetch(endpoint, {
       method: "GET",
@@ -55,7 +54,8 @@ serve(async (req: Request) => {
 
     const weather = await apiRes.json();
 
-    return new Response(JSON.stringify({ weather }), {
+    // Only return the relevant next N (24) hours per API reference
+    return new Response(JSON.stringify(weather), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
