@@ -1,4 +1,3 @@
-
 import { Sun, Cloud, CloudRain, Wind, CloudDrizzle, CloudSun } from "lucide-react";
 import React from "react";
 
@@ -14,29 +13,26 @@ const iconMap: Record<IconType, React.ElementType> = {
 
 export interface WeatherInfo {
   label: string;
-  temp: number;
+  range: {
+    low: number;
+    high: number;
+  };
   icon: IconType[];
   warning: string[];
-  highlight?: boolean;
 }
 
 export const WeatherCard: React.FC<WeatherInfo> = ({
   label,
-  temp,
+  range,
   icon,
   warning,
-  highlight = false,
 }) => {
   // icons is always an array now
   const icons = icon;
 
   return (
     <div
-      className={`card flex flex-col items-center gap-2 w-full max-w-sm md:w-48 min-w-[210px] ${highlight ? "card-highlight" : ""} ${
-        highlight
-          ? "border-2 border-pink-400 bg-pink-100"
-          : "border border-pink-200"
-      }`}
+      className={`card flex flex-col items-center gap-2 w-full max-w-sm md:w-48 min-w-[210px] border border-pink-200`}
       style={{
         borderRadius: "1.5rem",
         marginLeft: 0,
@@ -58,7 +54,9 @@ export const WeatherCard: React.FC<WeatherInfo> = ({
           );
         })}
       </div>
-      <div className="text-2xl font-bold mb-1 text-pink-900">{Math.round(temp)}°</div>
+      <div className="text-2xl font-bold mb-1 text-pink-900">
+        {Math.round(range.low)}° – {Math.round(range.high)}°
+      </div>
       {warning && warning.length > 0 && (
         <div className="flex flex-col items-center gap-1 mt-0.5 w-full">
           {warning.map((w, i) => (

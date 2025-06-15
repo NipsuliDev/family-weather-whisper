@@ -44,7 +44,7 @@ serve(async (req: Request) => {
     )}.
 It's currently the "${dayPart}" time window.
 Summarize the forecast for a family weather app.
-For each relevant period, return: label (string), temp (Celsius, number), icon (array of 1-2 from "sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"), warning (array of strings), highlight (boolean).
+For each relevant period, return: label (string), range (object with keys "low" and "high", both numbers, representing temp range in Celsius), icon (array of 1-2 from "sun", "cloud", "cloud-sun", "rain", "drizzle", "wind"), warning (array of strings).
 No markdown, no explanation. Return only the JSON array.`;
 
     const genAI = new GoogleGenAI(GEMINI_API_KEY);
@@ -62,7 +62,14 @@ No markdown, no explanation. Return only the JSON array.`;
               type: Type.OBJECT,
               properties: {
                 label: { type: Type.STRING },
-                temp: { type: Type.NUMBER },
+                range: {
+                  type: Type.OBJECT,
+                  properties: {
+                    low: { type: Type.NUMBER },
+                    high: { type: Type.NUMBER },
+                  },
+                  required: ["low", "high"],
+                },
                 icon: {
                   type: Type.ARRAY,
                   items: {
@@ -76,10 +83,9 @@ No markdown, no explanation. Return only the JSON array.`;
                   type: Type.ARRAY,
                   items: { type: Type.STRING },
                 },
-                highlight: { type: Type.BOOLEAN },
               },
-              required: ["label", "temp", "icon", "warning", "highlight"],
-              propertyOrdering: ["label", "temp", "icon", "warning", "highlight"],
+              required: ["label", "range", "icon", "warning"],
+              propertyOrdering: ["label", "range", "icon", "warning"],
             },
           },
           temperature: 0.4,

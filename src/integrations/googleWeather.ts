@@ -39,8 +39,10 @@ export type DayPart = "morning" | "afternoon" | "evening";
 // Helper interface for WeatherInfo - match UI
 export interface WeatherInfo {
   label: string;
-  temp: number;
+  range: {
+    low: number;
+    high: number;
+  };
   icon: string[]; // Array of string, will be validated in frontend
   warning: string[];
-  highlight?: boolean;
 }

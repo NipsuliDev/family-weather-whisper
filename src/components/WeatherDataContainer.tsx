@@ -69,10 +69,9 @@ export const WeatherDataContainer: React.FC = () => {
             <WeatherCard
               key={w.label}
               label={w.label}
-              temp={w.temp}
+              range={w.range}
               icon={safeIcons}
               warning={w.warning}
-              highlight={w.highlight}
             />
           );
         })}
