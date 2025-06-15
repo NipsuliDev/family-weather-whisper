@@ -1,6 +1,8 @@
+
 import { useHourlyWeather } from "./useHourlyWeather";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import React from "react";
 import type { DayPart, WeatherInfo } from "@/integrations/googleWeather";
 
 /**
@@ -37,29 +39,40 @@ export function useWeatherData(opts?: Options) {
   // 2. Compute current day part for family summaries (can override)
   const currentDayPart = opts?.dayPart || getDayPart();
 
-  // Timezone helpers
-  let timezone = "UTC";
-  let localTime = new Date().toISOString();
-  if (typeof window !== "undefined" && typeof Intl !== "undefined" && Intl.DateTimeFormat) {
-    try {
-      timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-      localTime = new Date().toISOString();
-    } catch {
-      // fallback to UTC and ISO string
+  // Memoize timezone and localTime so they are stable for useQuery queryKey
+  const { timezone, localTime } = React.useMemo(() => {
+    let tz = "UTC";
+    let lt = "";
+    if (typeof window !== "undefined" && typeof Intl !== "undefined" && Intl.DateTimeFormat) {
+      try {
+        tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+        lt = new Date().toISOString();
+      } catch {
+        // fallback to UTC and ISO string
+        tz = "UTC";
+        lt = new Date().toISOString();
+      }
+    } else {
+      tz = "UTC";
+      lt = new Date().toISOString();
     }
-  }
+    return { timezone: tz, localTime: lt };
+    // eslint-disable-next-line
+  }, [currentDayPart]);
 
   // Detect when hourlyData is ready
   const hasHourlyData = !!hourly.data && !hourly.isLoading && !hourly.error;
 
-  // DO NOT include the actual data in the key!
-  // If hourly.data is a plain object, it can cause loop
-  const queryKey = [
-    "weatherData",
-    { dayPart: currentDayPart },
-    { hasHourlyData },
-    { timezone, localTime },
-  ];
+  // The queryKey should remain stable while location/daypart/hourly data is stable
+  const queryKey = React.useMemo(
+    () => [
+      "weatherData",
+      { dayPart: currentDayPart },
+      { hasHourlyData }, // Only update when actual data changes
+      { timezone, localTime },
+    ],
+    [currentDayPart, hasHourlyData, timezone, localTime]
+  );
 
   const query = useQuery<WeatherInfo[], Error>({
     queryKey,
@@ -96,3 +109,4 @@ export function useWeatherData(opts?: Options) {
     dayPart: currentDayPart,
   };
 }
+
