@@ -1,3 +1,17 @@
+# Family Weather Whisperer
+
+Simple weather app. Nothing fancy, brutal focus on simplicity and actionable tips.
+
+If you have any issues, feedback or ideas feel free to open Issues
+
+This app is:
+* running in https://family-weather-whisper.lovable.app/
+* 100% vibe coded
+* side project
+* in daily use by @Nipsuli
+
+---
+
 # Welcome to your Lovable project
 
 ## Project info
