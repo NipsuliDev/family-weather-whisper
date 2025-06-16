@@ -2,12 +2,18 @@
 import React from "react";
 import { LogoutButton } from "@/components/LogoutButton";
 import { useFamilySettings } from "@/hooks/useFamilySettings";
+import { Button } from "@/components/ui/button";
+import { MessageSquare } from "lucide-react";
 
 export default function SettingsPage() {
   const { family, setFamily } = useFamilySettings();
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setFamily(e.target.value);
+  };
+
+  const handleFeedbackClick = () => {
+    window.open("https://github.com/Nipsuli/family-weather-whisperer/issues", "_blank");
   };
 
   return (
@@ -27,6 +33,15 @@ export default function SettingsPage() {
           value={family}
           onChange={handleChange}
         />
+        
+        <Button
+          onClick={handleFeedbackClick}
+          variant="outline"
+          className="mt-6 w-full md:w-96 text-pink-700 border-pink-300 hover:bg-pink-50"
+        >
+          <MessageSquare className="w-4 h-4 mr-2" />
+          Give Feedback
+        </Button>
       </div>
     </div>
   );
