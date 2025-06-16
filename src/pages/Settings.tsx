@@ -13,7 +13,7 @@ export default function SettingsPage() {
   };
 
   const handleFeedbackClick = () => {
-    window.open("https://github.com/Nipsuli/family-weather-whisperer/issues", "_blank");
+    window.open("https://github.com/NipsuliDev/family-weather-whisper/issues", "_blank");
   };
 
   return (
